@@ -63,6 +63,7 @@ body {
   font-size: 1.05rem;
   text-decoration: none;
   color: var(--text);
+  white-space: nowrap;
 }
 
 .brand-mark {
@@ -71,6 +72,7 @@ body {
 
 .topnav {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
 }
 
