@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unirme — Mis Gastos</title>
+<meta name="description" content="Abrí una invitación de Mis Gastos: sumate a un espacio compartido o vinculá una deuda.">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💜</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+  .invite-code {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin: 24px 0 16px;
+    box-shadow: var(--shadow);
+  }
+  .invite-code .value {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text);
+    flex: 1;
+    min-width: 8ch;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 8px 0 24px;
+  }
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0 20px;
+    border-radius: 999px;
+    font-weight: 700;
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #ffffff;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+  }
+  .button.secondary {
+    background: transparent;
+    color: var(--accent-strong);
+  }
+  .button.small {
+    min-height: 40px;
+    padding: 0 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    .button { color: #0f0d1a; }
+    .button.secondary { color: var(--accent-strong); }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="brand" href="index.html"><span class="brand-mark">💜</span> Mis Gastos</a>
+  <nav class="topnav" aria-label="Documentos legales">
+    <a href="terminos.html">Términos y Condiciones</a>
+    <a href="privacidad.html">Privacidad</a>
+    <a href="eliminar-cuenta.html">Eliminar cuenta</a>
+  </nav>
+</div>
+
+<main>
+  <p class="eyebrow">Mis Gastos</p>
+  <h1 id="title">Te invitaron a Mis Gastos</h1>
+  <p id="intro">Abrí la invitación en la app para sumarte.</p>
+
+  <div id="invite" hidden>
+    <div class="invite-code">
+      <span class="value" id="code" aria-label="Código de la invitación"></span>
+      <button class="button secondary small" type="button" id="copy">Copiar</button>
+    </div>
+
+    <div class="actions">
+      <a class="button" id="open" href="#">Abrir en Mis Gastos</a>
+      <a class="button secondary" id="download" href="#">Bajar la app</a>
+    </div>
+
+    <div class="callout">
+      <p><strong>Si la app no se abre sola:</strong> <span id="steps"></span></p>
+      <p id="referral" hidden>Si la bajás desde este botón, cuando cargues tu primer gasto vos y quien te invitó ganan 7 días sin anuncios.</p>
+    </div>
+  </div>
+
+  <div id="invalid" class="callout" hidden>
+    <p>Este link no tiene un código de invitación válido. Pedile a quien te invitó que te lo mande de nuevo desde la app.</p>
+  </div>
+</main>
+
+<footer>
+  <span>© 2026 Mis Gastos — Carlos Valerio</span>
+  <span><a href="privacidad.html">Ver Política de Privacidad</a></span>
+</footer>
+
+<script>
+  (function () {
+    var PACKAGE_NAME = 'com.cavaldev.misgastos';
+    var params = new URLSearchParams(window.location.search);
+    // Solo letras y números: el código nunca se inserta como HTML.
+    function clean(value) {
+      var code = (value || '').trim().toUpperCase().replace(/\s+/g, '');
+      return /^[A-Z0-9]{4,16}$/.test(code) ? code : null;
+    }
+    var kind = null;
+    var code = clean(params.get('espacio'));
+    if (code) {
+      kind = 'espacio';
+    } else {
+      code = clean(params.get('deuda'));
+      if (code) kind = 'deuda';
+    }
+    var ref = clean(params.get('ref'));
+
+    if (!kind) {
+      document.getElementById('invalid').hidden = false;
+      return;
+    }
+
+    var referrer = new URLSearchParams();
+    if (ref) referrer.set('ref_code', ref);
+    referrer.set(kind, code);
+    var playUrl = 'https://play.google.com/store/apps/details?id=' + PACKAGE_NAME + '&referrer=' + encodeURIComponent(referrer.toString());
+    var appPath = 'unirme?' + kind + '=' + code;
+    var isAndroid = /Android/i.test(navigator.userAgent);
+    // En Android, "intent://" abre la app si está instalada y, si no, va a Play (con el referido y la invitación).
+    var openUrl = isAndroid
+      ? 'intent://' + appPath + '#Intent;scheme=misgastos;package=' + PACKAGE_NAME + ';S.browser_fallback_url=' + encodeURIComponent(playUrl) + ';end'
+      : 'misgastos://' + appPath;
+
+    document.getElementById('title').textContent = kind === 'espacio' ? 'Te invitaron a un espacio' : 'Te pasaron una deuda';
+    document.getElementById('intro').textContent =
+      kind === 'espacio'
+        ? 'Sumate a un espacio compartido de Mis Gastos para llevar los gastos juntos.'
+        : 'Alguien registró una deuda con vos en Mis Gastos. Vinculala para verla en la app.';
+    document.getElementById('steps').textContent =
+      kind === 'espacio'
+        ? 'abrí Mis Gastos, entrá a Espacios → "Unirme a un espacio" y poné el código.'
+        : 'abrí Mis Gastos, entrá a Deudas → "Me pasaron un código de deuda" y poné el código.';
+    document.getElementById('code').textContent = code;
+    document.getElementById('open').href = openUrl;
+    document.getElementById('download').href = playUrl;
+    document.getElementById('referral').hidden = !ref;
+    document.getElementById('invite').hidden = false;
+
+    var copy = document.getElementById('copy');
+    copy.addEventListener('click', function () {
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(code).then(function () {
+        copy.textContent = 'Copiado';
+      }).catch(function () {});
+    });
+  })();
+</script>
+
+</body>
+</html>
